@@ -1,3 +1,10 @@
+from .paco_categories import (
+    PACO_ATTRIBUTES,
+    PACO_CATEGORIES,
+    PACO_CATEGORIES_COUNT,
+    PACO_PART_CATEGORIES,
+)
+
 # It's from https://github.com/cocodataset/panopticapi/blob/master/panoptic_coco_categories.json
 COCO_CATEGORIES = [
     {"color": [220, 20, 60], "isthing": 1, "id": 1, "name": "person"},

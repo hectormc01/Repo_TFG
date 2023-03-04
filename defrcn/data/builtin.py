@@ -4,6 +4,27 @@ from .meta_coco import register_meta_coco
 from .builtin_meta import _get_builtin_metadata
 from detectron2.data import DatasetCatalog, MetadataCatalog
 
+# -------- PACO -------- #
+def register_all_paco(root="datasets"):
+
+    METASPLITS = [
+        ("paco_lvis_v1_train", "coco", "paco/annotations/paco_lvis_v1_train.json"),
+        ("paco_lvis_v1_val", "coco", "paco/annotations/paco_lvis_v1_val.json"),
+        ("paco_lvis_v1_test", "coco", "paco/annotations/paco_lvis_v1_test.json")
+    ]
+
+    for dataset_name, imgdir, annofile in METASPLITS:
+        #register_instances(
+        register_meta_paco(
+            dataset_name,
+            
+            #get_instances_meta(dataset_name),
+            _get_builtin_metadata("coco_fewshot"),
+
+            os.path.join(root, imgdir),
+            os.path.join(root, annofile),
+        )
+
 
 # -------- COCO -------- #
 def register_all_coco(root="datasets"):
@@ -92,5 +113,6 @@ def register_all_voc(root="datasets"):
         MetadataCatalog.get(name).evaluator_type = "pascal_voc"
 
 
+register_all_paco()
 register_all_coco()
 register_all_voc()
