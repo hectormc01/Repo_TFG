@@ -4,6 +4,7 @@ from .paco_categories import (
     PACO_CATEGORIES_COUNT,
     PACO_PART_CATEGORIES,
 )
+from .paco_lvis_category_image_count import PACO_LVIS_CATEGORY_IMAGE_COUNT
 
 # It's from https://github.com/cocodataset/panopticapi/blob/master/panoptic_coco_categories.json
 COCO_CATEGORIES = [
@@ -207,6 +208,33 @@ PASCAL_VOC_BASE_CATEGORIES = {
 }
 
 
+def _get_object_and_attribute_classes():
+    assert len(PACO_CATEGORIES) == PACO_CATEGORIES_COUNT
+
+    # Ensure that the category list is sorted by id
+    categories = sorted(PACO_CATEGORIES, key=lambda x: x["id"])
+    attribute_categories = sorted(PACO_ATTRIBUTES, key=lambda x: x["id"])
+    part_categories = sorted(PACO_PART_CATEGORIES, key=lambda x: x["id"])
+
+    thing_dataset_id_to_contiguous_id = {k["id"]: _i for _i, k in enumerate(categories)}
+    thing_classes = [k["name"] for k in categories]
+    attribute_classes = [k["name"] for k in attribute_categories]
+    part_classes = [k["name"] for k in part_categories]
+
+    return {
+        "thing_classes": thing_classes,
+        "part_classes": part_classes,
+        "attribute_classes": attribute_classes,
+        "thing_dataset_id_to_contiguous_id": thing_dataset_id_to_contiguous_id,
+    }
+
+
+def _get_paco_instances_meta(): #copy of _get_lvis_instances_meta() in paco/paco/data/datasets/paco.py
+    metadata = _get_object_and_attribute_classes()
+    metadata["class_image_count"] = PACO_LVIS_CATEGORY_IMAGE_COUNT
+    return metadata
+
+
 def _get_coco_instances_meta():
     thing_ids = [k["id"] for k in COCO_CATEGORIES if k["isthing"] == 1]
     thing_colors = [k["color"] for k in COCO_CATEGORIES if k["isthing"] == 1]
@@ -252,7 +280,9 @@ def _get_voc_fewshot_instances_meta():
 
 
 def _get_builtin_metadata(dataset_name):
-    if dataset_name == "coco":
+    if dataset_name == "paco":
+        return _get_paco_instances_meta()
+    elif dataset_name == "coco":
         return _get_coco_instances_meta()
     elif dataset_name == "coco_fewshot":
         return _get_coco_fewshot_instances_meta()

@@ -17,10 +17,7 @@ def register_all_paco(root="datasets"):
         #register_instances(
         register_meta_paco(
             dataset_name,
-            
-            #get_instances_meta(dataset_name),
-            _get_builtin_metadata("coco_fewshot"),
-
+            _get_builtin_metadata("paco"),
             os.path.join(root, imgdir),
             os.path.join(root, annofile),
         )
