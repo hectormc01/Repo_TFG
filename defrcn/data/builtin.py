@@ -1,4 +1,5 @@
 import os
+from .meta_paco import register_meta_paco
 from .meta_voc import register_meta_voc
 from .meta_coco import register_meta_coco
 from .builtin_meta import _get_builtin_metadata
@@ -14,7 +15,6 @@ def register_all_paco(root="datasets"):
     ]
 
     for dataset_name, imgdir, annofile in METASPLITS:
-        #register_instances(
         register_meta_paco(
             dataset_name,
             _get_builtin_metadata("paco"),
