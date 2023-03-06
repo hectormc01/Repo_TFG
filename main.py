@@ -16,6 +16,11 @@ class Trainer(DefaultTrainer):
             output_folder = os.path.join(cfg.OUTPUT_DIR, "inference")
         evaluator_list = []
         evaluator_type = MetadataCatalog.get(dataset_name).evaluator_type
+        if evaluator_type == "lvis":
+            from defrcn.evaluation import COCOEvaluator
+            evaluator_list.append(COCOEvaluator(dataset_name, True, output_folder))
+            #from defrcn.evaluation import PACOEvaluator
+            #evaluator_list.append(PACOEvaluator(dataset_name, True, output_folder))
         if evaluator_type == "coco":
             from defrcn.evaluation import COCOEvaluator
             evaluator_list.append(COCOEvaluator(dataset_name, True, output_folder))
