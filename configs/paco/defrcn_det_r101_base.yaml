@@ -12,8 +12,8 @@ MODEL:
     ENABLE_DECOUPLE: True
     BACKWARD_SCALE: 0.75
 DATASETS:
-  TRAIN: ('paco_lvis_v1_train',)
-  TEST: ('paco_lvis_v1_test',)
+  TRAIN: ('paco_train_all',)
+  TEST: ('paco_test_all',)
 SOLVER:
   IMS_PER_BATCH: 16
   STEPS: (85000, 100000)

@@ -9,11 +9,14 @@ from detectron2.data import DatasetCatalog, MetadataCatalog
 def register_all_paco(root="datasets"):
 
     METASPLITS = [
-        ("paco_lvis_v1_train", "coco", "paco/annotations/paco_lvis_v1_train.json"),
-        ("paco_lvis_v1_val", "coco", "paco/annotations/paco_lvis_v1_val.json"),
-        ("paco_lvis_v1_test", "coco", "paco/annotations/paco_lvis_v1_test.json")
+        ("paco_train_all", "coco", "paco/annotations/paco_lvis_v1_train.json"),
+        #("paco_val_all", "coco", "paco/annotations/paco_lvis_v1_val.json"),
+        ("paco_test_all", "coco", "paco/annotations/paco_lvis_v1_test.json")
     ]
-
+    #
+    # Futuro
+    # novel datasets
+    #
     for dataset_name, imgdir, annofile in METASPLITS:
         register_meta_paco(
             dataset_name,
