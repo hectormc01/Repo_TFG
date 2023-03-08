@@ -8,7 +8,10 @@ from fvcore.common.file_io import PathManager
 from detectron2.data import DatasetCatalog, MetadataCatalog
 
 
-__all__ = ["register_meta_coco"]
+# Futuro
+# Cando adaptemos load_coco_json en meta_paco.py para incluir os atributos non será necesario exportala
+__all__ = ["load_coco_json", "register_meta_coco"]
+# __all__ = ["register_meta_coco"]
 
 
 def load_coco_json(json_file, image_root, metadata, dataset_name):
