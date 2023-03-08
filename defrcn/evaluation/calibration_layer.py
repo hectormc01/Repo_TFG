@@ -127,6 +127,10 @@ class PrototypicalCalibrationBlock:
         dsname = self.cfg.DATASETS.TEST[0]
         exclude_ids = []
         if 'test_all' in dsname:
+            #
+            # Futuro
+            # split few-shot paco
+            #
             if 'coco' in dsname:
                 exclude_ids = [7, 9, 10, 11, 12, 13, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
                                30, 31, 32, 33, 34, 35, 36, 37, 38, 40, 41, 42, 43, 44, 45,
