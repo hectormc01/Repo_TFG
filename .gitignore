@@ -8,7 +8,7 @@ dist/
 wheels/
 
 # pytorch/python/numpy formats
-*.pth
+# *.pth
 *.pkl
 *.npy
 
@@ -31,6 +31,7 @@ wheels/
 exp/
 checkpoints/
 _DEL_/
+datasets/paco
 datasets/coco
 datasets/cocosplit
 datasets/VOC2007
