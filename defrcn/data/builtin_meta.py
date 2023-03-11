@@ -2,7 +2,6 @@ from .paco_categories import (
     PACO_ATTRIBUTES,
     PACO_CATEGORIES,
     PACO_CATEGORIES_COUNT,
-    PACO_PART_CATEGORIES,
 )
 from .paco_lvis_category_image_count import PACO_LVIS_CATEGORY_IMAGE_COUNT
 
@@ -214,16 +213,13 @@ def _get_object_and_attribute_classes():
     # Ensure that the category list is sorted by id
     categories = sorted(PACO_CATEGORIES, key=lambda x: x["id"])
     attribute_categories = sorted(PACO_ATTRIBUTES, key=lambda x: x["id"])
-    part_categories = sorted(PACO_PART_CATEGORIES, key=lambda x: x["id"])
 
     thing_dataset_id_to_contiguous_id = {k["id"]: _i for _i, k in enumerate(categories)}
     thing_classes = [k["name"] for k in categories]
     attribute_classes = [k["name"] for k in attribute_categories]
-    part_classes = [k["name"] for k in part_categories]
 
     return {
         "thing_classes": thing_classes,
-        "part_classes": part_classes,
         "attribute_classes": attribute_classes,
         "thing_dataset_id_to_contiguous_id": thing_dataset_id_to_contiguous_id,
     }
