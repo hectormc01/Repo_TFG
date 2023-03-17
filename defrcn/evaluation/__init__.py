@@ -1,3 +1,4 @@
+from .paco_evaluation import PACOEvaluator
 from .coco_evaluation import COCOEvaluator
 from .pascal_voc_evaluation import PascalVOCDetectionEvaluator
 from .evaluator import DatasetEvaluator, DatasetEvaluators, inference_context, inference_on_dataset
