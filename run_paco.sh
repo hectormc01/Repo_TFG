@@ -10,6 +10,9 @@ IMAGENET_PRETRAIN_TORCH=/ImageNetPretrained/torchvision/resnet101-5d3b4d8f.pth
 CUDA_LAUNCH_BLOCKING=1 python3 main.py --num-gpus 1 --config-file configs/paco/defrcn_det_r101_base.yaml     \
     --opts MODEL.WEIGHTS ${IMAGENET_PRETRAIN}                                         \
            OUTPUT_DIR ${SAVEDIR}/defrcn_det_r101_base
+# CUDA_LAUNCH_BLOCKING=1 python3 main.py --num-gpus 1 --config-file configs/paco/defrcn_det_r101_base.yaml --eval-only     \
+#     --opts MODEL.WEIGHTS /pesos/model_final.pth                                         \
+#            OUTPUT_DIR ${SAVEDIR}/defrcn_det_r101_base
 
 
 # # ------------------------------ Model Preparation -------------------------------- #

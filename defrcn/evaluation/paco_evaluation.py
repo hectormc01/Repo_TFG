@@ -20,6 +20,7 @@ from detectron2.utils.file_io import PathManager
 from detectron2.utils.logger import create_small_table
 
 # from .coco_evaluation import instances_to_coco_json
+from detectron2.structures import BoxMode
 from .utils.paco_utils import get_AP_from_precisions, get_mean_AP, heirachrichal_APs
 
 
@@ -175,7 +176,11 @@ class PACOEvaluator(LVISEvaluator):
                 prediction["proposals"] = output["proposals"].to(self._cpu_device)
             self._predictions.append(prediction)
 
-    def _eval_predictions(self, predictions):
+    # As we must use detectron2 v0.3 for DeFRCN, we need the method _eval_predictions to take 3 arguments, because:
+    #   File "/detectron2_repo/detectron2/evaluation/lvis_evaluation.py", line 111, in evaluate
+    #       self._eval_predictions(set(self._tasks), predictions) # this passes self + 2 arguments
+    def _eval_predictions(self, tasks, predictions): # tasks argument is not used
+    # def _eval_predictions(self, predictions):
         """
         Borrows from https://github.com/facebookresearch/detectron2/blob/main/detectron2/evaluation/lvis_evaluation.py#L134
         Change is that update the signature of _evaluate_predictions_on_lvis
@@ -289,16 +294,21 @@ def _evaluate_predictions_on_lvis(
 
     precisions = lvis_eval.eval["precision"]
     # all 531 classes
-    all_obj_names = lvis_eval.lvis_gt.obj_names
-    # excludes cat ids corressponding to object-parts
-    obj_cat_ids = []
-    # 200 semantic part classes to object-part cats
-    part_id_to_obj_part_ids = defaultdict(list)
-    for x in lvis_eval.lvis_gt.dataset["categories"]:
-        if ":" in x["name"]:
-            part_id_to_obj_part_ids[x["name"].split(":")[-1]].append(x["id"])
-        else:
-            obj_cat_ids.append(x["id"])
+    # all_obj_names = lvis_eval.lvis_gt.obj_names
+
+    # 75 obj classes
+    all_obj_names = [cat['name'] for cat in lvis_gt.cats.values()]
+
+    # # excludes cat ids corressponding to object-parts
+    # obj_cat_ids = []
+    # # 200 semantic part classes to object-part cats
+    # part_id_to_obj_part_ids = defaultdict(list)
+    # for x in lvis_eval.lvis_gt.dataset["categories"]:
+    #     if ":" in x["name"]:
+    #         part_id_to_obj_part_ids[x["name"].split(":")[-1]].append(x["id"])
+    #     else:
+    #         obj_cat_ids.append(x["id"])
+
     # map cat ids to indices in eval results
     sorted_cats = sorted(lvis_eval.lvis_gt.dataset["categories"], key=lambda x: x["id"])
     obj_cats_to_cont_id_eval = {cat["id"]: _i for _i, cat in enumerate(sorted_cats)}
@@ -307,30 +317,32 @@ def _evaluate_predictions_on_lvis(
     results_processed = {}
     obj_results = []
     obj_results_per_class = {}
+    obj_cat_ids = lvis_gt.cats.keys()
     for obj_cat in obj_cat_ids:
         idx = obj_cats_to_cont_id_eval[obj_cat]
         ap = get_AP_from_precisions(precisions, idx)
         obj_results.append(float(ap * 100))
-        obj_results_per_class[all_obj_names[obj_cat]] = ap * 100
+        #obj_results_per_class[all_obj_names[obj_cat]] = ap * 100
+        obj_results_per_class[all_obj_names[idx]] = ap * 100
 
     results_processed["obj-AP"] = get_mean_AP(list(obj_results_per_class.values()))
     results_processed["per-obj-AP"] = obj_results_per_class
 
     # report AP for 200 part classes
-    part_results_per_class = {}
-    for part, obj_part_ids in part_id_to_obj_part_ids.items():
-        results_for_part = []
-        for _id in obj_part_ids:
-            idx = obj_cats_to_cont_id_eval[_id]
-            ap = get_AP_from_precisions(precisions, idx)
-            results_for_part.append(float(ap * 100))
-        part_results_per_class[part] = get_mean_AP(results_for_part)
+    # part_results_per_class = {}
+    # for part, obj_part_ids in part_id_to_obj_part_ids.items():
+    #     results_for_part = []
+    #     for _id in obj_part_ids:
+    #         idx = obj_cats_to_cont_id_eval[_id]
+    #         ap = get_AP_from_precisions(precisions, idx)
+    #         results_for_part.append(float(ap * 100))
+    #     part_results_per_class[part] = get_mean_AP(results_for_part)
 
-    overall_part_res = np.array(list(part_results_per_class.values()))
-    results_processed["obj-part-AP-heirarchical"] = np.mean(
-        overall_part_res[overall_part_res > -1]
-    )
-    results_processed["per-part-AP"] = part_results_per_class
+    # overall_part_res = np.array(list(part_results_per_class.values()))
+    # results_processed["obj-part-AP-heirarchical"] = np.mean(
+    #     overall_part_res[overall_part_res > -1]
+    # )
+    # results_processed["per-part-AP"] = part_results_per_class
 
     if eval_attributes:
         # report AP for attrs
