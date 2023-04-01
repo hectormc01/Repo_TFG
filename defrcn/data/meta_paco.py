@@ -6,8 +6,7 @@ from detectron2.structures import BoxMode
 from detectron2.utils.file_io import PathManager
 from fvcore.common.timer import Timer
 
-#from paco.data.dataset_mapper import ATTR_TYPE_BG_IDXS
-ATTR_TYPE_BG_IDXS = [29, 38, 54, 58]
+from defrcn.dataloader.dataset_mapper import ATTR_TYPE_BG_IDXS
 
 
 logger = logging.getLogger(__name__)
