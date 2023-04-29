@@ -8,9 +8,17 @@ MODEL:
     ENABLE_DECOUPLE: True
     BACKWARD_SCALE: 0.0
   ROI_HEADS:
+    NAME: "PACOROIHeads"
     NUM_CLASSES: 75
     ENABLE_DECOUPLE: True
     BACKWARD_SCALE: 0.75
+  ROI_BOX_HEAD:
+    NAME: "FastRCNNConvFCHead"
+    NUM_CONV: 0
+    CONV_DIM: 256
+    NUM_FC: 2
+    FC_DIM: 1024
+    NORM: ""
 DATASETS:
   TRAIN: ('paco_train_all',)
   TEST: ('paco_test_all',)

@@ -16,6 +16,9 @@ from detectron2.modeling.proposal_generator.proposal_utils import add_ground_tru
 from .box_head import build_box_head
 from .fast_rcnn import ROI_HEADS_OUTPUT_REGISTRY, FastRCNNOutputLayers, FastRCNNOutputs
 
+from .attribute_head import MAPPED_ATTRS_LIST, select_proposals_with_attributes, AttributeOutputLayers
+## from .attribute_head import registro_2
+
 ROI_HEADS_REGISTRY = Registry("ROI_HEADS")
 ROI_HEADS_REGISTRY.__doc__ = """
 Registry for ROI heads in a generalized R-CNN model.
@@ -86,12 +89,14 @@ class ROIHeads(torch.nn.Module):
         self.test_score_thresh        = cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST
         self.test_nms_thresh          = cfg.MODEL.ROI_HEADS.NMS_THRESH_TEST
         self.test_detections_per_img  = cfg.TEST.DETECTIONS_PER_IMAGE
-        self.in_features              = cfg.MODEL.ROI_HEADS.IN_FEATURES
+        self.in_features              = cfg.MODEL.ROI_HEADS.IN_FEATURES # Toma o valor ["res4"] da configuración por defecto de Detectron2 v0.3, xa que non se define en /defrcn/config/defaults.py nin nos ficheiros de /configs
+                                                                        # Currently all heads (box, mask, ...) use the same input feature map list
+                                                                        # e.g., ["p2", "p3", "p4", "p5"] is commonly used for FPN
         self.num_classes              = cfg.MODEL.ROI_HEADS.NUM_CLASSES
         self.proposal_append_gt       = cfg.MODEL.ROI_HEADS.PROPOSAL_APPEND_GT
         self.feature_strides          = {k: v.stride for k, v in input_shape.items()}
         self.feature_channels         = {k: v.channels for k, v in input_shape.items()}
-        self.cls_agnostic_bbox_reg    = cfg.MODEL.ROI_BOX_HEAD.CLS_AGNOSTIC_BBOX_REG
+        self.cls_agnostic_bbox_reg    = cfg.MODEL.ROI_BOX_HEAD.CLS_AGNOSTIC_BBOX_REG    # Toma o valor False da configuración por defecto de Detectron2 v0.3, xa que non se define en /defrcn/config/defaults.py nin nos ficheiros de /configs
         self.smooth_l1_beta           = cfg.MODEL.ROI_BOX_HEAD.SMOOTH_L1_BETA
         # fmt: on
 
@@ -269,6 +274,7 @@ class ROIHeads(torch.nn.Module):
         raise NotImplementedError()
 
 
+# Cabeceira empregada cos datasets COCO e VOC (Res5ROIHeads)
 @ROI_HEADS_REGISTRY.register()
 class Res5ROIHeads(ROIHeads):
     """
@@ -282,10 +288,10 @@ class Res5ROIHeads(ROIHeads):
         assert len(self.in_features) == 1
 
         # fmt: off
-        pooler_resolution = cfg.MODEL.ROI_BOX_HEAD.POOLER_RESOLUTION
-        pooler_type       = cfg.MODEL.ROI_BOX_HEAD.POOLER_TYPE
+        pooler_resolution = cfg.MODEL.ROI_BOX_HEAD.POOLER_RESOLUTION            # Definido en defrcn/defrcn/config/defaults.py: 7 (for faster)
+        pooler_type       = cfg.MODEL.ROI_BOX_HEAD.POOLER_TYPE                  # Toma o valor "ROIAlignV2" da configuración por defecto de Detectron2 v0.3, xa que non se define en /defrcn/config/defaults.py nin nos ficheiros de /configs
         pooler_scales     = (1.0 / self.feature_strides[self.in_features[0]], )
-        sampling_ratio    = cfg.MODEL.ROI_BOX_HEAD.POOLER_SAMPLING_RATIO
+        sampling_ratio    = cfg.MODEL.ROI_BOX_HEAD.POOLER_SAMPLING_RATIO        # Toma o valor 0 da configuración por defecto de Detectron2 v0.3, xa que non se define en /defrcn/config/defaults.py nin nos ficheiros de /configs
         # fmt: on
         assert not cfg.MODEL.KEYPOINT_ON
 
@@ -298,14 +304,14 @@ class Res5ROIHeads(ROIHeads):
 
         self.res5, out_channels = self._build_res5_block(cfg)
         output_layer = cfg.MODEL.ROI_HEADS.OUTPUT_LAYER
-        self.box_predictor = ROI_HEADS_OUTPUT_REGISTRY.get(output_layer)(
-            cfg, out_channels, self.num_classes, self.cls_agnostic_bbox_reg
+        self.box_predictor = ROI_HEADS_OUTPUT_REGISTRY.get(output_layer)(    # ROI_HEADS_OUTPUT_REGISTRY é o rexistro das capas de saída definido en fast_rcnn.py
+            cfg, out_channels, self.num_classes, self.cls_agnostic_bbox_reg  # Os canles de entrada das capas de saída serán os canles de saída do bloque Res5
         )
 
     def _build_res5_block(self, cfg):
         # fmt: off
         stage_channel_factor = 2 ** 3  # res5 is 8x res2
-        num_groups           = cfg.MODEL.RESNETS.NUM_GROUPS
+        num_groups           = cfg.MODEL.RESNETS.NUM_GROUPS  # Toma o valor 1 da configuración por defecto de Detectron2. 1 ==> ResNet; > 1 ==> ResNeXt
         width_per_group      = cfg.MODEL.RESNETS.WIDTH_PER_GROUP
         bottleneck_channels  = num_groups * width_per_group * stage_channel_factor
         out_channels         = cfg.MODEL.RESNETS.RES2_OUT_CHANNELS * stage_channel_factor
@@ -315,9 +321,9 @@ class Res5ROIHeads(ROIHeads):
             "Deformable conv is not yet supported in res5 head."
         # fmt: on
 
-        blocks = make_stage(
-            BottleneckBlock,
-            3,
+        blocks = make_stage(  # Create a list of blocks of the same type. 
+            BottleneckBlock,  # block_class: standard bottleneck residual block, it contains 3 conv layers with kernels 1x1, 3x3, 1x1, and a projection shortcut if needed.
+            3,                # num_blocks: 3 blocks in the stage
             first_stride=2,
             in_channels=out_channels // 2,
             bottleneck_channels=bottleneck_channels,
@@ -346,16 +352,16 @@ class Res5ROIHeads(ROIHeads):
         del targets
 
         proposal_boxes = [x.proposal_boxes for x in proposals]
-        box_features = self._shared_roi_transform(
+        box_features = self._shared_roi_transform(                      # Para cada proposta, faise o ROI Pooling e procésase a través do bloque Res5
             [features[f] for f in self.in_features], proposal_boxes
         )
         feature_pooled = box_features.mean(dim=[2, 3])  # pooled to 1x1
-        pred_class_logits, pred_proposal_deltas = self.box_predictor(
+        pred_class_logits, pred_proposal_deltas = self.box_predictor(   # Predicir a clase e a bbox empregando as capas de saída correspondentes
             feature_pooled
         )
         del feature_pooled
 
-        outputs = FastRCNNOutputs(
+        outputs = FastRCNNOutputs(  # Gardar os resultados
             self.box2box_transform,
             pred_class_logits,
             pred_proposal_deltas,
@@ -374,6 +380,203 @@ class Res5ROIHeads(ROIHeads):
                 self.test_detections_per_img,
             )
             return pred_instances, {}
+
+# Cabeceira empregada co dataset PACO (PACOROIHeads): Res5ROIHeads con soporte para atributos
+@ROI_HEADS_REGISTRY.register()
+class PACOROIHeads(ROIHeads):
+    """
+    The ROIHeads in a typical "C4" R-CNN model, where the heads share the
+    cropping and the per-region feature computation by a Res5 block.
+    """
+
+    def __init__(self, cfg, input_shape):
+        super().__init__(cfg, input_shape)
+
+        self._init_box_head(cfg)        # Defínense self.box_pooler, self.res5 e self.box_predictor
+        self._init_attribute_head(cfg)  # Defínense self.attr_pooler, self.attr_head e self.attr_predictor
+
+    def _init_box_head(self, cfg):
+        # Lembrar que no noso caso self.in_features é ["res4"], é dicir, contamos cun único mapa de características
+        # No caso de contar con múltiples mapas de características, deberíamos asegurarnos de que o número de canles é o mesmo en todos eles
+        assert len(self.in_features) == 1
+
+        # fmt: off
+        pooler_resolution = cfg.MODEL.ROI_BOX_HEAD.POOLER_RESOLUTION            # Definido en defrcn/defrcn/config/defaults.py: 7 (for faster)
+        pooler_type       = cfg.MODEL.ROI_BOX_HEAD.POOLER_TYPE                  # Toma o valor "ROIAlignV2" da configuración por defecto de Detectron2 v0.3, xa que non se define en /defrcn/config/defaults.py nin nos ficheiros de /configs
+        pooler_scales     = (1.0 / self.feature_strides[self.in_features[0]], )
+        sampling_ratio    = cfg.MODEL.ROI_BOX_HEAD.POOLER_SAMPLING_RATIO        # Toma o valor 0 da configuración por defecto de Detectron2 v0.3, xa que non se define en /defrcn/config/defaults.py nin nos ficheiros de /configs
+        # fmt: on
+        assert not cfg.MODEL.KEYPOINT_ON
+
+        # Defínese self.box_pooler
+        self.box_pooler = ROIPooler(
+            output_size=pooler_resolution,
+            scales=pooler_scales,
+            sampling_ratio=sampling_ratio,
+            pooler_type=pooler_type,
+        )
+
+        # Defínese o bloque Res5 coma self.res5
+        self.res5, out_channels = self._build_res5_block(cfg)
+
+        # Defínese self.box_predictor como instancia de FastRCNNOutputLayers
+        output_layer = cfg.MODEL.ROI_HEADS.OUTPUT_LAYER
+        self.box_predictor = ROI_HEADS_OUTPUT_REGISTRY.get(output_layer)(    # ROI_HEADS_OUTPUT_REGISTRY é o rexistro das capas de saída definido en fast_rcnn.py
+            cfg, out_channels, self.num_classes, self.cls_agnostic_bbox_reg  # Os canles de entrada das capas de saída serán os canles de saída do bloque Res5
+        )
+
+    def _build_res5_block(self, cfg):
+        # fmt: off
+        stage_channel_factor = 2 ** 3  # res5 is 8x res2
+        num_groups           = cfg.MODEL.RESNETS.NUM_GROUPS  # Toma o valor 1 da configuración por defecto de Detectron2. 1 ==> ResNet; > 1 ==> ResNeXt
+        width_per_group      = cfg.MODEL.RESNETS.WIDTH_PER_GROUP
+        bottleneck_channels  = num_groups * width_per_group * stage_channel_factor
+        out_channels         = cfg.MODEL.RESNETS.RES2_OUT_CHANNELS * stage_channel_factor
+        stride_in_1x1        = cfg.MODEL.RESNETS.STRIDE_IN_1X1
+        norm                 = cfg.MODEL.RESNETS.NORM
+        assert not cfg.MODEL.RESNETS.DEFORM_ON_PER_STAGE[-1], \
+            "Deformable conv is not yet supported in res5 head."
+        # fmt: on
+
+        blocks = make_stage(  # Create a list of blocks of the same type. 
+            BottleneckBlock,  # block_class: standard bottleneck residual block, it contains 3 conv layers with kernels 1x1, 3x3, 1x1, and a projection shortcut if needed.
+            3,                # num_blocks: 3 blocks in the stage
+            first_stride=2,
+            in_channels=out_channels // 2,
+            bottleneck_channels=bottleneck_channels,
+            out_channels=out_channels,
+            num_groups=num_groups,
+            norm=norm,
+            stride_in_1x1=stride_in_1x1,
+        )
+        return nn.Sequential(*blocks), out_channels
+
+    def _init_attribute_head(self, cfg):
+        # Lembrar que no noso caso, self.in_features é ["res4"], é dicir, contamos cun único mapa de características
+        assert len(self.in_features) == 1
+        in_channels = [self.feature_channels[f] for f in self.in_features]  
+        # assert len(set(in_channels)) == 1, in_channels  # No caso de contar con múltiples mapas de características, deberíamos asegurarnos de que o número de canles é o mesmo en todos eles
+        in_channels = in_channels[0]
+
+        # fmt: off
+        pooler_resolution = cfg.MODEL.ROI_BOX_HEAD.POOLER_RESOLUTION
+        pooler_scales     = tuple(1.0 / self.feature_strides[k] for k in self.in_features)
+        sampling_ratio    = cfg.MODEL.ROI_BOX_HEAD.POOLER_SAMPLING_RATIO
+        pooler_type       = cfg.MODEL.ROI_BOX_HEAD.POOLER_TYPE
+        # fmt: on
+        assert not cfg.MODEL.KEYPOINT_ON
+
+        # Defínese o self.attr_pooler exactamente igual que o self.box_pooler
+        self.attr_pooler = ROIPooler(
+            output_size=pooler_resolution,
+            scales=pooler_scales,
+            sampling_ratio=sampling_ratio,
+            pooler_type=pooler_type,
+        )
+
+        # A self.attr_head constrúese en base aos parámetros MODEL.ROI_BOX_HEAD.NUM_CONV, MODEL.ROI_BOX_HEAD.CONV_DIM, MODEL.ROI_BOX_HEAD.NUM_FC, MODEL.ROI_BOX_HEAD.FC_DIM, MODEL.ROI_BOX_HEAD.NORM
+        self.attr_head = build_box_head(
+            cfg,
+            ShapeSpec(
+                channels=in_channels,
+                height=pooler_resolution,
+                width=pooler_resolution
+            ),
+        )
+
+        # Defínese self.attr_predictor como instancia de AttributeOutputLayers
+        self.attr_predictor = AttributeOutputLayers(
+        ## self.attr_predictor = registro_2.get("AttributeOutputLayers")(
+            ## cfg,
+            self.attr_head.output_shape,  # Os canles de entrada das capas de saída serán os canles de saída da attr_head
+            MAPPED_ATTRS_LIST
+        )
+
+    def forward(self, images, features, proposals, targets=None):
+        """
+        See :class:`ROIHeads.forward`.
+        """
+        del images
+
+        if self.training:
+            assert targets, "'targets' argument is required during training"
+            proposals = self.label_and_sample_proposals(proposals, targets)
+        del targets
+
+        if self.training:
+            losses = self._forward_box(features, proposals)
+            losses.update(self._forward_attributes(features, proposals))
+            return proposals, losses
+        else:
+            pred_instances = self._forward_box(features, proposals)
+            pred_instances = self.forward_attributes(features, pred_instances)
+            return pred_instances, {}
+
+    def _forward_box(self, features, proposals):
+        """
+        Forward logic of the box prediction branch.
+        Args:
+            features (dict[str, Tensor]): mapping from feature map names to tensor.
+                Same as in :meth:`ROIHeads.forward`.
+            proposals (list[Instances]): the per-image object proposals with
+                their matching ground truth.
+                Each has fields "proposal_boxes", and "objectness_logits",
+                "gt_classes", "gt_boxes".
+        Returns:
+            In training, a dict of losses.
+            In inference, a list of `Instances`, the predicted instances.
+        """
+        features = [features[f] for f in self.in_features]  # No noso caso self.in_features é ["res4"], é dicir, contamos cun único mapa de características
+        
+        box_features = self.box_pooler(features, [x.proposal_boxes for x in proposals])
+
+        box_features = self.res5(box_features)
+        feature_pooled = box_features.mean(dim=[2, 3])  # pooled to 1x1
+
+        pred_class_logits, pred_proposal_deltas = self.box_predictor(feature_pooled)   # Predicir a clase e a bbox empregando as capas de saída correspondentes
+        del feature_pooled
+
+        outputs = FastRCNNOutputs(
+            self.box2box_transform,
+            pred_class_logits,
+            pred_proposal_deltas,
+            proposals,
+            self.smooth_l1_beta,
+        )
+        if self.training:
+            return outputs.losses()
+        else:
+            pred_instances, _ = outputs.inference(
+                self.test_score_thresh,
+                self.test_nms_thresh,
+                self.test_detections_per_img,
+            )
+            return pred_instances
+
+    def _forward_attributes(self, features, instances):
+        """
+        Forward logic of the attribute prediction branch.
+        Args:
+            features (dict[str, Tensor]): mapping from feature map names to
+                tensor. Same as in :meth:`ROIHeads.forward`.
+            instances (list[Instances]): the per-image instances to
+                train/predict masks.
+                In training, they can be the proposals.
+                In inference, they can be the boxes predicted by R-CNN box head
+        Returns:
+            In training, a dict of losses.
+            In inference, update `instances` with new fields "pred_masks" and
+            return it.
+        """
+        features = [features[f] for f in self.in_features]  # No noso caso self.in_features é ["res4"], é dicir, contamos cun único mapa de características
+        
+        boxes = [x.proposal_boxes if self.training else x.pred_boxes for x in instances]
+
+        features = self.attr_pooler(features, boxes)
+
+        features = self.attr_head(features)
+
+        return self.attr_predictor(features, instances)
 
 
 @ROI_HEADS_REGISTRY.register()
