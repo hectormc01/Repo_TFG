@@ -14,7 +14,7 @@ import pycocotools.mask as mask_utils
 from lvis import LVISEval
 from lvis.eval import Params
 
-from paco.evaluation.utils.paco_utils import (
+from defrcn.evaluation.utils.paco_utils import (
     calculate_part_box_area_outside_obj,
     calculate_part_mask_area_outside_obj,
 )

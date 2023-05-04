@@ -17,7 +17,6 @@ from .box_head import build_box_head
 from .fast_rcnn import ROI_HEADS_OUTPUT_REGISTRY, FastRCNNOutputLayers, FastRCNNOutputs
 
 from .attribute_head import MAPPED_ATTRS_LIST, select_proposals_with_attributes, AttributeOutputLayers
-## from .attribute_head import registro_2
 
 ROI_HEADS_REGISTRY = Registry("ROI_HEADS")
 ROI_HEADS_REGISTRY.__doc__ = """
@@ -486,10 +485,9 @@ class PACOROIHeads(ROIHeads):
 
         # Defínese self.attr_predictor como instancia de AttributeOutputLayers
         self.attr_predictor = AttributeOutputLayers(
-        ## self.attr_predictor = registro_2.get("AttributeOutputLayers")(
-            ## cfg,
             self.attr_head.output_shape,  # Os canles de entrada das capas de saída serán os canles de saída da attr_head
-            MAPPED_ATTRS_LIST
+            MAPPED_ATTRS_LIST,
+            loss_weight=0.01
         )
 
     def forward(self, images, features, proposals, targets=None):
@@ -509,7 +507,7 @@ class PACOROIHeads(ROIHeads):
             return proposals, losses
         else:
             pred_instances = self._forward_box(features, proposals)
-            pred_instances = self.forward_attributes(features, pred_instances)
+            pred_instances = self._forward_attributes(features, pred_instances)
             return pred_instances, {}
 
     def _forward_box(self, features, proposals):

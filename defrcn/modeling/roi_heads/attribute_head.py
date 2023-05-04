@@ -216,15 +216,12 @@ def attribute_loss(
         sum_loss += pal
     return sum_loss
 
-## from detectron2.utils.registry import Registry
-## registro_2 = Registry("ROI_HEADS_OUTPUT")
-## @registro_2.register()
 class AttributeOutputLayers(nn.Module):
     """
     One linear layer for each attribute type
     """
 
-    ## @configurable
+    # @configurable
     def __init__(
         self,
         input_shape: ShapeSpec,
@@ -255,13 +252,13 @@ class AttributeOutputLayers(nn.Module):
         else:
             self.attr_weight = None
 
-    ## @classmethod
-    ## def from_config(cls, _cfg, input_shape, mapped_ids_list):
-    ##     ret = {
-    ##         "input_shape": input_shape,
-    ##         "mapped_ids_list": mapped_ids_list,
-    ##     }
-    ##     return ret
+    # @classmethod
+    # def from_config(cls, _cfg, input_shape, mapped_ids_list):
+    #     ret = {
+    #         "input_shape": input_shape,
+    #         "mapped_ids_list": mapped_ids_list,
+    #     }
+    #     return ret
 
     def layers(self, x):
         attr_values = []
