@@ -1,6 +1,7 @@
 from .paco_categories import (
     PACO_ATTRIBUTES,
     PACO_CATEGORIES,
+    PACO_NOVEL_CATEGORIES,
     PACO_CATEGORIES_COUNT,
 )
 from .paco_lvis_category_image_count import PACO_LVIS_CATEGORY_IMAGE_COUNT
@@ -230,6 +231,21 @@ def _get_paco_instances_meta(): #copy of _get_lvis_instances_meta() in paco/paco
     metadata["class_image_count"] = PACO_LVIS_CATEGORY_IMAGE_COUNT
     return metadata
 
+def _get_paco_fewshot_instances_meta():
+    ret = _get_paco_instances_meta()
+    novel_ids = [k["id"] for k in PACO_NOVEL_CATEGORIES]
+    novel_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(novel_ids)}
+    novel_classes = [k["name"] for k in PACO_NOVEL_CATEGORIES]
+    base_categories = [k for k in PACO_CATEGORIES if k["name"] not in novel_classes]
+    base_ids = [k["id"] for k in base_categories]
+    base_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(base_ids)}
+    base_classes = [k["name"] for k in base_categories]
+    ret["novel_dataset_id_to_contiguous_id"] = novel_dataset_id_to_contiguous_id
+    ret["novel_classes"] = novel_classes
+    ret["base_dataset_id_to_contiguous_id"] = base_dataset_id_to_contiguous_id
+    ret["base_classes"] = base_classes
+    return ret
+
 
 def _get_coco_instances_meta():
     thing_ids = [k["id"] for k in COCO_CATEGORIES if k["isthing"] == 1]
@@ -278,6 +294,8 @@ def _get_voc_fewshot_instances_meta():
 def _get_builtin_metadata(dataset_name):
     if dataset_name == "paco":
         return _get_paco_instances_meta()
+    elif dataset_name == "paco_fewshot":
+        return _get_paco_fewshot_instances_meta()
     elif dataset_name == "coco":
         return _get_coco_instances_meta()
     elif dataset_name == "coco_fewshot":

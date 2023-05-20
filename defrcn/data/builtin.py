@@ -10,17 +10,25 @@ def register_all_paco(root="datasets"):
 
     METASPLITS = [
         ("paco_train_all", "coco", "paco/annotations/paco_lvis_v1_train.json"),
-        #("paco_val_all", "coco", "paco/annotations/paco_lvis_v1_val.json"),
-        ("paco_test_all", "coco", "paco/annotations/paco_lvis_v1_test.json")
+        ("paco_train_base", "coco", "paco/annotations/paco_lvis_v1_train.json"),
+        # Para o adestramento das clases novel, empregaremos os distintos shots
+
+        ("paco_test_all", "coco", "paco/annotations/paco_lvis_v1_test.json"),
+        ("paco_test_base", "coco", "paco/annotations/paco_lvis_v1_test.json"),
+        ("paco_test_novel", "coco", "paco/annotations/paco_lvis_v1_test.json")
     ]
-    #
-    # Futuro
-    # novel datasets
-    #
+    
+    # Rexistrar os shots para 10 seeds
+    for prefix in ["all", "novel"]:
+        for shot in [1, 2, 3, 5, 10, 30]:
+            for seed in range(10):
+                name = "paco_train_{}_{}shot_seed{}".format(prefix, shot, seed)
+                METASPLITS.append((name, "coco", ""))
+
     for dataset_name, imgdir, annofile in METASPLITS:
         register_meta_paco(
             dataset_name,
-            _get_builtin_metadata("paco"),
+            _get_builtin_metadata("paco_fewshot"),
             os.path.join(root, imgdir),
             os.path.join(root, annofile),
         )

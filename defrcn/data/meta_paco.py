@@ -30,46 +30,44 @@ def load_paco_json(json_file, image_root, meta, dataset_name=None, extra_annotat
     """
     from lvis import LVIS
 
-    json_file = PathManager.get_local_path(json_file)
-
-    timer = Timer()
-    lvis_api = LVIS(json_file)
-    if timer.seconds() > 1:
-        logger.info(
-            "Loading {} takes {:.2f} seconds.".format(json_file, timer.seconds())
-        )
-
-    # Instead of getting metadata from the 3 following lines, we get it as an argument (meta)
-    # if dataset_name is not None:
-    #     meta = get_instances_meta(dataset_name)
-    #     MetadataCatalog.get(dataset_name).set(**meta)
-
-    # sort indices for reproducible results
-    img_ids = sorted(lvis_api.imgs.keys())
-    # imgs is a list of dicts, each looks something like:
-    # {'license': 4,
-    #  'url': 'http://farm6.staticflickr.com/5454/9413846304_881d5e5c3b_z.jpg',
-    #  'file_name': 'COCO_val2014_000000001268.jpg',
-    #  'height': 427,
-    #  'width': 640,
-    #  'date_captured': '2013-11-17 05:57:24',
-    #  'id': 1268}
-    imgs = lvis_api.load_imgs(img_ids)
-    # anns is a list[list[dict]], where each dict is an annotation
-    # record for an object. The inner list enumerates the objects in an image
-    # and the outer list enumerates over images. Example of anns[0]:
-    # [{'segmentation': [[192.81,
-    #     247.09,
-    #     ...
-    #     219.03,
-    #     249.06]],
-    #   'area': 1035.749,
-    #   'image_id': 1268,
-    #   'bbox': [192.81, 224.8, 74.73, 33.43],
-    #   'category_id': 16,
-    #   'id': 42986},
-    #  ...]
-    anns = [lvis_api.img_ann_map[img_id] for img_id in img_ids]
+    is_shots = "shot" in dataset_name  # few-shot
+    if is_shots:
+        imgid2info = {}
+        shot = dataset_name.split('_')[-2].split('shot')[0]
+        seed = int(dataset_name.split('_seed')[-1])
+        split_dir = os.path.join('datasets', 'pacosplit', 'seed{}'.format(seed))
+        for cls in enumerate(metadata["novel_classes"]): # for novel classes
+            json_file = os.path.join(split_dir, "full_box_{}shot_{}_trainval.json".format(shot, cls))
+            json_file = PathManager.get_local_path(json_file)
+            timer = Timer()
+            lvis_api = LVIS(json_file)
+            if timer.seconds() > 1:
+                logger.info(
+                    "Loading {} takes {:.2f} seconds.".format(json_file, timer.seconds())
+                )
+            img_ids = sorted(list(lvis_api.imgs.keys()))
+            for img_id in img_ids:
+                if img_id not in imgid2info:
+                    imgid2info[img_id] = [lvis_api.loadImgs([img_id])[0], lvis_api.imgToAnns[img_id]]
+                else:
+                    for item in lvis_api.imgToAnns[img_id]:
+                        imgid2info[img_id][1].append(item)
+        imgs, anns = [], []
+        for img_id in imgid2info:
+            imgs.append(imgid2info[img_id][0])
+            anns.append(imgid2info[img_id][1])
+    else:
+        json_file = PathManager.get_local_path(json_file)
+        timer = Timer()
+        lvis_api = LVIS(json_file)
+        if timer.seconds() > 1:
+            logger.info(
+                "Loading {} takes {:.2f} seconds.".format(json_file, timer.seconds())
+            )
+        # sort indices for reproducible results
+        img_ids = sorted(lvis_api.imgs.keys())
+        imgs = lvis_api.load_imgs(img_ids)
+        anns = [lvis_api.img_ann_map[img_id] for img_id in img_ids]
 
     # Sanity check that each annotation has a unique id
     ann_ids = [ann["id"] for anns_per_image in anns for ann in anns_per_image]
@@ -162,10 +160,12 @@ def register_meta_paco(name, metadata, imgdir, annofile):
         lambda: load_paco_json(annofile, imgdir, metadata, dataset_name=name),
     )
 
-    #
-    # Futuro
-    # split base-novel
-    #
+    if "_base" in name or "_novel" in name:
+        split = "base" if "_base" in name else "novel"
+        metadata["thing_dataset_id_to_contiguous_id"] = metadata[
+            "{}_dataset_id_to_contiguous_id".format(split)
+        ]
+        metadata["thing_classes"] = metadata["{}_classes".format(split)]
 
     MetadataCatalog.get(name).set(
         json_file=annofile,
