@@ -9,7 +9,7 @@ MODEL:
     BACKWARD_SCALE: 0.0
   ROI_HEADS:
     NAME: "PACOROIHeads"
-    NUM_CLASSES: 75
+    NUM_CLASSES: 55
     ENABLE_DECOUPLE: True
     BACKWARD_SCALE: 0.75
   ROI_BOX_HEAD:
@@ -20,8 +20,8 @@ MODEL:
     FC_DIM: 1024
     NORM: ""
 DATASETS:
-  TRAIN: ('paco_train_all',)
-  TEST: ('paco_test_all',)
+  TRAIN: ('paco_train_base',)
+  TEST: ('paco_test_base',)
 SOLVER:
   IMS_PER_BATCH: 16
   STEPS: (70000, 80000)
