@@ -36,8 +36,8 @@ def load_paco_json(json_file, image_root, meta, dataset_name=None, extra_annotat
         shot = dataset_name.split('_')[-2].split('shot')[0]
         seed = int(dataset_name.split('_seed')[-1])
         split_dir = os.path.join('datasets', 'pacosplit', 'seed{}'.format(seed))
-        for cls in enumerate(metadata["novel_classes"]): # for novel classes
-            json_file = os.path.join(split_dir, "full_box_{}shot_{}_trainval.json".format(shot, cls))
+        for idx, cls in enumerate(metadata["thing_classes"]): # for all classes
+            json_file = os.path.join(split_dir, "full_box_{}shot_{}_train.json".format(shot, cls))
             json_file = PathManager.get_local_path(json_file)
             timer = Timer()
             lvis_api = LVIS(json_file)

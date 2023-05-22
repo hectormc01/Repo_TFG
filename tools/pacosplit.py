@@ -67,7 +67,7 @@ def generate_seeds():
                 new_data = {
                     "images": sample_imgs,
                     "annotations": sample_shots,
-                    "categories": data["categories"], # todas as categorías (base e novel)
+                    "categories": data["categories"], # todas as categorías
                     "attributes": data["attributes"], # todos os atributos
                     "attr_type_to_attr_idxs": data["attr_type_to_attr_idxs"],
                 }
@@ -88,83 +88,83 @@ def get_save_path_seeds(path, cls, shots, seed):
 
 
 if __name__ == "__main__":
-    # Diccionario coas clases novel
+    # Diccionario con todas as clases
     ID2CLASS = {
-        # 23: "trash_can",
-        # 35: "handbag",
-        41: "ball",
-        # 61: "basket",
-        # 88: "belt",
-        # 90: "bench",
-        94: "bicycle",
-        # 112: "blender",
-        # 127: "book",
-        # 133: "bottle",
-        # 139: "bowl",
-        # 143: "box",
-        # 156: "broom",
-        # 160: "bucket",
-        # 184: "calculator",
-        # 192: "can",
-        207: "car_(automobile)",
-        # 220: "carton",
-        # 230: "cellular_telephone",
-        # 232: "chair",
-        271: "clock",
-        # 324: "crate",
-        # 344: "cup",
-        378: "dog",
-        # 396: "drill",
-        # 399: "drum_(musical_instrument)",
-        409: "earphone",
-        429: "fan",
-        # 498: "glass_(drink_container)",
-        # 521: "guitar",
-        # 530: "hammer",
-        # 544: "hat",
-        # 556: "helmet",
-        # 591: "jar",
-        # 604: "kettle",
-        615: "knife",
-        621: "ladder",
-        # 626: "lamp",
-        # 631: "laptop_computer",
-        687: "microwave_oven",
-        694: "mirror",
-        705: "mouse_(computer_equipment)",
-        # 708: "mug",
-        # 713: "napkin",
-        719: "newspaper",
-        # 751: "pan_(for_cooking)",
-        # 781: "pen",
-        # 782: "pencil",
-        # 804: "pillow",
-        # 811: "pipe",
-        # 818: "plate",
-        # 821: "pliers",
-        # 881: "remote_control",
-        # 898: "plastic_bag",
-        921: "scarf",
-        # 923: "scissors",
-        # 926: "screwdriver",
-        # 948: "shoe",
-        # 973: "slipper_(footwear)",
-        979: "soap",
-        # 999: "sponge",
-        1000: "spoon",
-        # 1018: "stool",
-        1042: "sweater",
-        1050: "table",
-        # 1061: "tape_(sticky_cloth_or_paper)",
-        # 1072: "telephone",
-        # 1077: "television_set",
-        # 1093: "tissue_paper",
-        1108: "towel",
-        # 1117: "tray",
-        # 1139: "vase",
-        # 1156: "wallet",
-        1161: "watch",
-        # 1196: "wrench",
+        23: "trash_can",
+        35: "handbag",
+        41: "ball",                             # novel
+        61: "basket",
+        88: "belt",
+        90: "bench",
+        94: "bicycle",                          # novel
+        112: "blender",
+        127: "book",
+        133: "bottle",
+        139: "bowl",
+        143: "box",
+        156: "broom",
+        160: "bucket",
+        184: "calculator",
+        192: "can",
+        207: "car_(automobile)",                # novel
+        220: "carton",
+        230: "cellular_telephone",
+        232: "chair",
+        271: "clock",                           # novel
+        324: "crate",
+        344: "cup",
+        378: "dog",                             # novel
+        396: "drill",
+        399: "drum_(musical_instrument)",
+        409: "earphone",                        # novel
+        429: "fan",                             # novel
+        498: "glass_(drink_container)",
+        521: "guitar",
+        530: "hammer",
+        544: "hat",
+        556: "helmet",
+        591: "jar",
+        604: "kettle",
+        615: "knife",                           # novel
+        621: "ladder",                          # novel
+        626: "lamp",
+        631: "laptop_computer",
+        687: "microwave_oven",                  # novel
+        694: "mirror",                          # novel
+        705: "mouse_(computer_equipment)",      # novel
+        708: "mug",
+        713: "napkin",
+        719: "newspaper",                       # novel
+        751: "pan_(for_cooking)",
+        781: "pen",
+        782: "pencil",
+        804: "pillow",
+        811: "pipe",
+        818: "plate",
+        821: "pliers",
+        881: "remote_control",
+        898: "plastic_bag",
+        921: "scarf",                           # novel
+        923: "scissors",
+        926: "screwdriver",
+        948: "shoe",
+        973: "slipper_(footwear)",
+        979: "soap",                            # novel
+        999: "sponge",
+        1000: "spoon",                          # novel
+        1018: "stool",
+        1042: "sweater",                        # novel
+        1050: "table",                          # novel
+        1061: "tape_(sticky_cloth_or_paper)",
+        1072: "telephone",
+        1077: "television_set",
+        1093: "tissue_paper",
+        1108: "towel",                          # novel
+        1117: "tray",
+        1139: "vase",
+        1156: "wallet",
+        1161: "watch",                          # novel
+        1196: "wrench",
     }
     CLASS2ID = {v: k for k, v in ID2CLASS.items()}
 
