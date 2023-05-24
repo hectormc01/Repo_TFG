@@ -39,8 +39,14 @@ def generate_seeds():
             sample_shots = [] # lista de instancias do shot
             sample_imgs = []  # lista de imaxes do shot
             for shots in [1, 2, 3, 5, 10, 30]:
+                loop = 0 # conta do número de veces que se revisaron todas as imaxes
                 while True:
-                    imgs = random.sample(list(img_ids.keys()), shots) # lista de <shots> ids de imaxe aleatorios (con anotacións da categoría)
+                    if len(img_ids) > shots:
+                        imgs = random.sample(list(img_ids.keys()), shots) # lista de <shots> ids de imaxe aleatorios (con anotacións da categoría)
+                    else: # se non hai <shots> imaxes con anotacións para unha clase, escóllense todas
+                        imgs = list(img_ids.keys())
+                        random.shuffle(imgs)
+
                     for img in imgs:
                         skip = False
                         # Se xa incluimos as anotacións da imaxe na lista de instancias (sample_shots), pasamos á seguinte imaxe
@@ -63,6 +69,14 @@ def generate_seeds():
                             break
                     if len(sample_shots) == shots:
                         break
+                    
+                    loop += 1
+                    # Se se chega a un estancamento, vacíanse as listas de instancias e imaxes
+                    # Este fenómeno prodúcese sobre todo coas categorías con moi poucas instancias
+                    if loop == 10:
+                        sample_shots = []
+                        sample_imgs = []
+                        loop = 0
                 
                 new_data = {
                     "images": sample_imgs,
