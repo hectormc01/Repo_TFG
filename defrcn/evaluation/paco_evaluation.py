@@ -151,6 +151,11 @@ class PACOEvaluator(LVISEvaluator):
         self._max_dets_per_image = max_dets_per_image
         self._cpu_device = torch.device("cpu")
         self._metadata = MetadataCatalog.get(dataset_name)
+        
+        self._is_splits = "all" in dataset_name or "base" in dataset_name or "novel" in dataset_name
+        self._base_classes = [23, 35, 61, 88, 90, 112, 127, 133, 139, 143, 156, 160, 184, 192, 220, 230, 232, 324, 344, 396, 399, 498, 521, 530, 544, 556, 591, 604, 626, 631, 708, 713, 751, 781, 782, 804, 811, 818, 821, 881, 898, 923, 926, 948, 973, 999, 1018, 1061, 1072, 1077, 1093, 1117, 1139, 1156, 1196]
+        self._novel_classes = [41, 94, 207, 271, 378, 409, 429, 615, 621, 687, 694, 705, 719, 921, 979, 1000, 1042, 1050, 1108, 1161]
+
         json_file = PathManager.get_local_path(self._metadata.json_file)
         self._lvis_api = LVIS(json_file)
         # Test set json files do not contain annotations (evaluation must be
@@ -217,18 +222,57 @@ class PACOEvaluator(LVISEvaluator):
             return
 
         self._logger.info("Evaluating predictions ...")
-        # change from D2 begins
-        for task in sorted(tasks):
-            res = _evaluate_predictions_on_lvis(
-                self._lvis_api,
-                lvis_results,
-                task,
-                max_dets_per_image=self._max_dets_per_image,
-                eval_attributes=self.eval_attributes,
-                attr_ap_type=self.attr_ap_type,
-            )
-            self._results[task] = res
-        # change from D2 ends
+        if self._is_splits:
+            for task in sorted(tasks):
+                self._results[task] = {}
+                for split, classes, names in [
+                        ("all", None, self._metadata.get("thing_classes")),
+                        ("base", self._base_classes, self._metadata.get("base_classes")),
+                        ("novel", self._novel_classes, self._metadata.get("novel_classes"))]:
+                    if "all" not in self._dataset_name and split not in self._dataset_name:
+                        continue
+                    res_ = (
+                        _evaluate_predictions_on_lvis(
+                            self._lvis_api,
+                            lvis_results,
+                            task,
+                            max_dets_per_image=self._max_dets_per_image,
+                            eval_attributes=self.eval_attributes,
+                            attr_ap_type=self.attr_ap_type,
+                            classes,
+                            names
+                        )
+                    )
+                    res = {}
+                    for metric in res_.keys():
+                        if len(metric) <= 4:
+                            if split == "all":
+                                res[metric] = res_[metric]
+                            elif split == "base":
+                                res["b"+metric] = res_[metric]
+                            elif split == "novel":
+                                res["n"+metric] = res_[metric]
+                    self._results[task].update(res)
+
+                # add "AP" if not already in
+                if "AP" not in self._results[task]:
+                    if "nAP" in self._results[task]:
+                        self._results[task]["AP"] = self._results[task]["nAP"]
+                    else:
+                        self._results[task]["AP"] = self._results[task]["bAP"]
+        else:
+            # change from D2 begins
+            for task in sorted(tasks):
+                res = _evaluate_predictions_on_lvis(
+                    self._lvis_api,
+                    lvis_results,
+                    task,
+                    max_dets_per_image=self._max_dets_per_image,
+                    eval_attributes=self.eval_attributes,
+                    attr_ap_type=self.attr_ap_type,
+                )
+                self._results[task] = res
+            # change from D2 ends
 
 
 def _evaluate_predictions_on_lvis(
@@ -238,6 +282,8 @@ def _evaluate_predictions_on_lvis(
     max_dets_per_image=None,
     eval_attributes=False,
     attr_ap_type="usual",
+    cat_ids=None,
+    cat_names=None
 ):
     """
     Runs either regular LVIS eval or PACO eval depending on whether
@@ -287,73 +333,111 @@ def _evaluate_predictions_on_lvis(
         lvis_results = LVISResults(lvis_gt, lvis_results, max_dets=max_dets_per_image)
         lvis_eval = LVISEval(lvis_gt, lvis_results, iou_type)
 
+    if cat_ids is not None:
+        # lvis_eval.params.use_cats = 1 # Por defecto
+        lvis_eval.params.cat_ids = cat_ids
+    
     lvis_eval.run()
     lvis_eval.print_results()
 
     # post process and save results
 
     precisions = lvis_eval.eval["precision"]
-    # all 531 classes
-    # all_obj_names = lvis_eval.lvis_gt.obj_names
 
-    # 75 obj classes
-    all_obj_names = [cat['name'] for cat in lvis_gt.cats.values()]
+    if cat_names is not None:
+        assert len(cat_names) == precisions.shape[2] # Asegurarse de que coincide o número de categorías
+        
+        # map cat ids to indices in eval results
+        obj_cats_to_cont_id_eval = {cat_id: _i for _i, cat_id in enumerate(cat_ids)}
 
-    # # excludes cat ids corressponding to object-parts
-    # obj_cat_ids = []
-    # # 200 semantic part classes to object-part cats
-    # part_id_to_obj_part_ids = defaultdict(list)
-    # for x in lvis_eval.lvis_gt.dataset["categories"]:
-    #     if ":" in x["name"]:
-    #         part_id_to_obj_part_ids[x["name"].split(":")[-1]].append(x["id"])
-    #     else:
-    #         obj_cat_ids.append(x["id"])
+        # report AP
+        results_processed = {}
+        obj_results = []
+        obj_results_per_class = {}
+        for obj_cat in cat_ids:
+            idx = obj_cats_to_cont_id_eval[obj_cat]
+            ap = get_AP_from_precisions(precisions, idx)
+            obj_results.append(float(ap * 100))
+            obj_results_per_class[cat_names[idx]] = ap * 100
 
-    # map cat ids to indices in eval results
-    sorted_cats = sorted(lvis_eval.lvis_gt.dataset["categories"], key=lambda x: x["id"])
-    obj_cats_to_cont_id_eval = {cat["id"]: _i for _i, cat in enumerate(sorted_cats)}
+        results_processed["obj-AP"] = get_mean_AP(list(obj_results_per_class.values()))
+        results_processed["per-obj-AP"] = obj_results_per_class
 
-    # report AP for 75 object classes
-    results_processed = {}
-    obj_results = []
-    obj_results_per_class = {}
-    obj_cat_ids = lvis_gt.cats.keys()
-    for obj_cat in obj_cat_ids:
-        idx = obj_cats_to_cont_id_eval[obj_cat]
-        ap = get_AP_from_precisions(precisions, idx)
-        obj_results.append(float(ap * 100))
-        #obj_results_per_class[all_obj_names[obj_cat]] = ap * 100
-        obj_results_per_class[all_obj_names[idx]] = ap * 100
+        if eval_attributes:
+            # report AP for attrs
+            results_heirarchical = heirachrichal_APs(lvis_eval)
+            results_processed["attributes-heirarchical"] = results_heirarchical
 
-    results_processed["obj-AP"] = get_mean_AP(list(obj_results_per_class.values()))
-    results_processed["per-obj-AP"] = obj_results_per_class
+        results = lvis_eval.get_results()
+        results = {metric: float(results[metric] * 100) for metric in metrics}
+        results["post-processed"] = results_processed
 
-    # report AP for 200 part classes
-    # part_results_per_class = {}
-    # for part, obj_part_ids in part_id_to_obj_part_ids.items():
-    #     results_for_part = []
-    #     for _id in obj_part_ids:
-    #         idx = obj_cats_to_cont_id_eval[_id]
-    #         ap = get_AP_from_precisions(precisions, idx)
-    #         results_for_part.append(float(ap * 100))
-    #     part_results_per_class[part] = get_mean_AP(results_for_part)
+        logger.info(
+            "Evaluation results for {}: \n".format(iou_type) + create_small_table(results)
+        )
+    else:
+        # all 531 classes
+        # all_obj_names = lvis_eval.lvis_gt.obj_names
 
-    # overall_part_res = np.array(list(part_results_per_class.values()))
-    # results_processed["obj-part-AP-heirarchical"] = np.mean(
-    #     overall_part_res[overall_part_res > -1]
-    # )
-    # results_processed["per-part-AP"] = part_results_per_class
+        # 75 obj classes
+        all_obj_names = [cat['name'] for cat in lvis_gt.cats.values()]
 
-    if eval_attributes:
-        # report AP for attrs
-        results_heirarchical = heirachrichal_APs(lvis_eval)
-        results_processed["attributes-heirarchical"] = results_heirarchical
+        # # excludes cat ids corressponding to object-parts
+        # obj_cat_ids = []
+        # # 200 semantic part classes to object-part cats
+        # part_id_to_obj_part_ids = defaultdict(list)
+        # for x in lvis_eval.lvis_gt.dataset["categories"]:
+        #     if ":" in x["name"]:
+        #         part_id_to_obj_part_ids[x["name"].split(":")[-1]].append(x["id"])
+        #     else:
+        #         obj_cat_ids.append(x["id"])
 
-    results = lvis_eval.get_results()
-    results = {metric: float(results[metric] * 100) for metric in metrics}
-    results["post-processed"] = results_processed
+        # map cat ids to indices in eval results
+        sorted_cats = sorted(lvis_eval.lvis_gt.dataset["categories"], key=lambda x: x["id"])
+        obj_cats_to_cont_id_eval = {cat["id"]: _i for _i, cat in enumerate(sorted_cats)}
 
-    logger.info(
-        "Evaluation results for {}: \n".format(iou_type) + create_small_table(results)
-    )
+        # report AP for 75 object classes
+        results_processed = {}
+        obj_results = []
+        obj_results_per_class = {}
+        obj_cat_ids = lvis_gt.cats.keys()
+        for obj_cat in obj_cat_ids:
+            idx = obj_cats_to_cont_id_eval[obj_cat]
+            ap = get_AP_from_precisions(precisions, idx)
+            obj_results.append(float(ap * 100))
+            #obj_results_per_class[all_obj_names[obj_cat]] = ap * 100
+            obj_results_per_class[all_obj_names[idx]] = ap * 100
+
+        results_processed["obj-AP"] = get_mean_AP(list(obj_results_per_class.values()))
+        results_processed["per-obj-AP"] = obj_results_per_class
+
+        # report AP for 200 part classes
+        # part_results_per_class = {}
+        # for part, obj_part_ids in part_id_to_obj_part_ids.items():
+        #     results_for_part = []
+        #     for _id in obj_part_ids:
+        #         idx = obj_cats_to_cont_id_eval[_id]
+        #         ap = get_AP_from_precisions(precisions, idx)
+        #         results_for_part.append(float(ap * 100))
+        #     part_results_per_class[part] = get_mean_AP(results_for_part)
+
+        # overall_part_res = np.array(list(part_results_per_class.values()))
+        # results_processed["obj-part-AP-heirarchical"] = np.mean(
+        #     overall_part_res[overall_part_res > -1]
+        # )
+        # results_processed["per-part-AP"] = part_results_per_class
+
+        if eval_attributes:
+            # report AP for attrs
+            results_heirarchical = heirachrichal_APs(lvis_eval)
+            results_processed["attributes-heirarchical"] = results_heirarchical
+
+        results = lvis_eval.get_results()
+        results = {metric: float(results[metric] * 100) for metric in metrics}
+        results["post-processed"] = results_processed
+
+        logger.info(
+            "Evaluation results for {}: \n".format(iou_type) + create_small_table(results)
+        )
+
     return results
