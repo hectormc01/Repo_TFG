@@ -51,8 +51,15 @@ def main(args):
             torch.nn.init.normal_(new_weight, 0, 0.01)
         else:
             new_weight = torch.zeros(tar_size)
-        if args.dataset == 'coco':
-            for idx, c in enumerate(BASE_CLASSES):
+        if args.dataset == 'paco':
+            for idx, c in enumerate(PACO_BASE_CLASSES):
+                if 'cls_score' in param_name:
+                    new_weight[IDMAP[c]] = pretrained_weight[idx]
+                else:
+                    new_weight[IDMAP[c]*4:(IDMAP[c]+1)*4] = \
+                        pretrained_weight[idx*4:(idx+1)*4]
+        elif args.dataset == 'coco':
+            for idx, c in enumerate(COCO_BASE_CLASSES):
                 # idx = i if args.dataset == 'coco' else c
                 if 'cls_score' in param_name:
                     new_weight[IDMAP[c]] = pretrained_weight[idx]
@@ -71,7 +78,7 @@ def main(args):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=str, default='coco', choices=['voc', 'coco'])
+    parser.add_argument('--dataset', type=str, default='paco', choices=['voc', 'coco', 'paco'])
     parser.add_argument('--src-path', type=str, default='', help='Path to the main checkpoint')
     parser.add_argument('--save-dir', type=str, default='', required=True, help='Save directory')
     parser.add_argument('--method', choices=['remove', 'randinit'], required=True,
@@ -82,13 +89,19 @@ if __name__ == '__main__':
     parser.add_argument('--tar-name', type=str, default='model_reset', help='Name of the new ckpt')
     args = parser.parse_args()
 
-    if args.dataset == 'coco':
-        NOVEL_CLASSES = [1, 2, 3, 4, 5, 6, 7, 9, 16, 17, 18, 19, 20, 21, 44, 62, 63, 64, 67, 72]
-        BASE_CLASSES = [8, 10, 11, 13, 14, 15, 22, 23, 24, 25, 27, 28, 31, 32, 33, 34, 35, 36, 37, 38,
+    if args.dataset == 'paco':
+        PACO_NOVEL_CLASSES = [41, 94, 207, 271, 378, 409, 429, 615, 621, 687, 694, 705, 719, 921, 979, 1000, 1042, 1050, 1108, 1161]
+        PACO_BASE_CLASSES = [23, 35, 61, 88, 90, 112, 127, 133, 139, 143, 156, 160, 184, 192, 220, 230, 232, 324, 344, 396, 399, 498, 521, 530, 544, 556, 591, 604, 626, 631, 708, 713, 751, 781, 782, 804, 811, 818, 821, 881, 898, 923, 926, 948, 973, 999, 1018, 1061, 1072, 1077, 1093, 1117, 1139, 1156, 1196]
+        PACO_ALL_CLASSES = sorted(PACO_BASE_CLASSES + PACO_NOVEL_CLASSES)
+        IDMAP = {v: i for i, v in enumerate(PACO_ALL_CLASSES)}
+        TAR_SIZE = 75
+    elif args.dataset == 'coco':
+        COCO_NOVEL_CLASSES = [1, 2, 3, 4, 5, 6, 7, 9, 16, 17, 18, 19, 20, 21, 44, 62, 63, 64, 67, 72]
+        COCO_BASE_CLASSES = [8, 10, 11, 13, 14, 15, 22, 23, 24, 25, 27, 28, 31, 32, 33, 34, 35, 36, 37, 38,
                         39, 40, 41, 42, 43, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
                         61, 65, 70, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 84, 85, 86, 87, 88, 89, 90]
-        ALL_CLASSES = sorted(BASE_CLASSES + NOVEL_CLASSES)
-        IDMAP = {v: i for i, v in enumerate(ALL_CLASSES)}
+        COCO_ALL_CLASSES = sorted(COCO_BASE_CLASSES + COCO_NOVEL_CLASSES)
+        IDMAP = {v: i for i, v in enumerate(COCO_ALL_CLASSES)}
         TAR_SIZE = 80
     elif args.dataset == 'voc':
         TAR_SIZE = 20
