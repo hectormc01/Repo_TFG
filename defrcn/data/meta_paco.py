@@ -48,7 +48,7 @@ def load_paco_json(json_file, image_root, meta, dataset_name=None, extra_annotat
             img_ids = sorted(list(lvis_api.imgs.keys()))
             for img_id in img_ids:
                 if img_id not in imgid2info:
-                    imgid2info[img_id] = [lvis_api.loadImgs([img_id])[0], lvis_api.imgToAnns[img_id]]
+                    imgid2info[img_id] = [lvis_api.load_imgs([img_id])[0], lvis_api.img_ann_map[img_id]]
                 else:
                     for item in lvis_api.imgToAnns[img_id]:
                         imgid2info[img_id][1].append(item)
