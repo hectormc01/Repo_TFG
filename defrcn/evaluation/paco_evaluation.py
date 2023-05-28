@@ -239,8 +239,8 @@ class PACOEvaluator(LVISEvaluator):
                             max_dets_per_image=self._max_dets_per_image,
                             eval_attributes=self.eval_attributes,
                             attr_ap_type=self.attr_ap_type,
-                            classes,
-                            names
+                            cat_ids=classes,
+                            cat_names=names
                         )
                     )
                     res = {}

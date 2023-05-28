@@ -36,7 +36,7 @@ def load_paco_json(json_file, image_root, meta, dataset_name=None, extra_annotat
         shot = dataset_name.split('_')[-2].split('shot')[0]
         seed = int(dataset_name.split('_seed')[-1])
         split_dir = os.path.join('datasets', 'pacosplit', 'seed{}'.format(seed))
-        for idx, cls in enumerate(metadata["thing_classes"]): # for all classes
+        for idx, cls in enumerate(meta["thing_classes"]): # for all classes
             json_file = os.path.join(split_dir, "full_box_{}shot_{}_train.json".format(shot, cls))
             json_file = PathManager.get_local_path(json_file)
             timer = Timer()
@@ -69,13 +69,14 @@ def load_paco_json(json_file, image_root, meta, dataset_name=None, extra_annotat
         imgs = lvis_api.load_imgs(img_ids)
         anns = [lvis_api.img_ann_map[img_id] for img_id in img_ids]
 
-    # Sanity check that each annotation has a unique id
-    ann_ids = [ann["id"] for anns_per_image in anns for ann in anns_per_image]
-    assert len(set(ann_ids)) == len(
-        ann_ids
-    ), "Annotation ids in '{}' are not unique".format(json_file)
+    # As we duplicated some train annotations to ensure every cat has at least 30 instances, we are not going to check that annos are unique
+    # ann_ids = [ann["id"] for anns_per_image in anns for ann in anns_per_image]
+    # assert len(set(ann_ids)) == len(
+    #     ann_ids
+    # ), "Annotation ids in '{}' are not unique".format(json_file)
 
     imgs_anns = list(zip(imgs, anns))
+    id_map = meta["thing_dataset_id_to_contiguous_id"]
 
     logger.info(
         "Loaded {} images in the LVIS format from {}".format(len(imgs_anns), json_file)
@@ -113,19 +114,10 @@ def load_paco_json(json_file, image_root, meta, dataset_name=None, extra_annotat
         for anno in anno_dict_list:
             # Check that the image_id in this annotation is the same as
             # the image_id we're looking at.
-            # This fails only when the data parsing logic or the annotation
-            # file is buggy.
             assert anno["image_id"] == image_id
-            obj = {"bbox": anno["bbox"], "bbox_mode": BoxMode.XYWH_ABS}
 
-            if dataset_name is not None and "thing_dataset_id_to_contiguous_id" in meta:
-                obj["category_id"] = meta["thing_dataset_id_to_contiguous_id"][
-                    anno["category_id"]
-                ]
-            else:
-                obj["category_id"] = (
-                    anno["category_id"] - 1
-                )  # Convert 1-indexed to 0-indexed
+            obj = {"bbox": anno["bbox"], "bbox_mode": BoxMode.XYWH_ABS, "category_id": anno["category_id"]}
+
             segm = anno["segmentation"]  # list[list[float]]
 
             if len(segm) == 0:
@@ -146,7 +138,10 @@ def load_paco_json(json_file, image_root, meta, dataset_name=None, extra_annotat
             else:
                 obj["attr_labels"] = ATTR_TYPE_BG_IDXS
                 obj["attr_ignores"] = [1, 1, 1, 1]
-            objs.append(obj)
+
+            if obj["category_id"] in id_map:
+                obj["category_id"] = id_map[obj["category_id"]]
+                objs.append(obj)
 
         record["annotations"] = objs
         dataset_dicts.append(record)
