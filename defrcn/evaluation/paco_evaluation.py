@@ -152,6 +152,7 @@ class PACOEvaluator(LVISEvaluator):
         self._cpu_device = torch.device("cpu")
         self._metadata = MetadataCatalog.get(dataset_name)
         
+        self._dataset_name = dataset_name
         self._is_splits = "all" in dataset_name or "base" in dataset_name or "novel" in dataset_name
         self._base_classes = [23, 35, 61, 88, 90, 112, 127, 133, 139, 143, 156, 160, 184, 192, 220, 230, 232, 324, 344, 396, 399, 498, 521, 530, 544, 556, 591, 604, 626, 631, 708, 713, 751, 781, 782, 804, 811, 818, 821, 881, 898, 923, 926, 948, 973, 999, 1018, 1061, 1072, 1077, 1093, 1117, 1139, 1156, 1196]
         self._novel_classes = [41, 94, 207, 271, 378, 409, 429, 615, 621, 687, 694, 705, 719, 921, 979, 1000, 1042, 1050, 1108, 1161]
@@ -326,16 +327,16 @@ def _evaluate_predictions_on_lvis(
         from .paco_eval_api import PACOEval as LVISEval, PACOResults as LVISResults
 
         lvis_results = LVISResults(lvis_gt, lvis_results, max_dets=max_dets_per_image)
-        lvis_eval = LVISEval(lvis_gt, lvis_results, iou_type, attr_ap_type=attr_ap_type)
+        lvis_eval = LVISEval(lvis_gt, lvis_results, iou_type, attr_ap_type=attr_ap_type, cat_ids=cat_ids)
     else:
         from lvis import LVISEval, LVISResults
 
         lvis_results = LVISResults(lvis_gt, lvis_results, max_dets=max_dets_per_image)
-        lvis_eval = LVISEval(lvis_gt, lvis_results, iou_type)
+        lvis_eval = LVISEval(lvis_gt, lvis_results, iou_type, cat_ids=cat_ids)
 
-    if cat_ids is not None:
+    # if cat_ids is not None:
         # lvis_eval.params.use_cats = 1 # Por defecto
-        lvis_eval.params.cat_ids = cat_ids
+        # lvis_eval.params.cat_ids = cat_ids
     
     lvis_eval.run()
     lvis_eval.print_results()

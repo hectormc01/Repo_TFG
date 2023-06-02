@@ -26,7 +26,7 @@ SUPPORTED_ATTR_AP_TYPES = ["usual", "lb", "ub"]
 
 
 class PACOEval(LVISEval):
-    def __init__(self, paco_gt, paco_dt, iou_type="segm", attr_ap_type="usual"):
+    def __init__(self, paco_gt, paco_dt, iou_type="segm", attr_ap_type="usual", cat_ids=None):
         """Constructor for PACOEval.
         Args:
             paco_gt (PACO class instance, or str containing path of annotation file)
@@ -35,6 +35,7 @@ class PACOEval(LVISEval):
             iou_type (str): segm or bbox evaluation
             attr_ap_type (str): supports usual AP calc for attr +
                 ub (upper bound) + lb (lower bound)
+            cat_ids (list of int): categories to evaluate
         """
         self.logger = logging.getLogger(__name__)
 
@@ -72,8 +73,16 @@ class PACOEval(LVISEval):
         self.results_joint_attr = OrderedDict()
 
         self.params.img_ids = sorted(self.lvis_gt.get_img_ids())
-        self.params.cat_ids = sorted(self.lvis_gt.get_cat_ids())
-        self.params.joint_attr_ids = sorted(self.lvis_gt.get_joint_attr_ids())
+        if cat_ids is None:
+            self.params.cat_ids = sorted(self.lvis_gt.get_cat_ids())
+
+            # Ids de todas as combinacións de categorías e atributos (range(1743))
+            self.params.joint_attr_ids = sorted(self.lvis_gt.get_joint_attr_ids())
+        else:
+            self.params.cat_ids = cat_ids
+
+            # Ids das combinacións entre categorías indicadas e atributos (entre 0 y 1742 (len < 1742))
+            self.params.joint_attr_ids = [cat_id for cat_id in sorted(self.lvis_gt.get_joint_attr_ids()) if self.lvis_gt.joint_attr_cat_to_obj_attr[cat_id][0] in cat_ids]
 
         assert (
             attr_ap_type in SUPPORTED_ATTR_AP_TYPES
