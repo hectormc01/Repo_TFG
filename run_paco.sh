@@ -7,9 +7,9 @@ IMAGENET_PRETRAIN_TORCH=/ImageNetPretrained/torchvision/resnet101-5d3b4d8f.pth
 
 
 # ------------------------------- Base Pre-train ---------------------------------- #
-CUDA_LAUNCH_BLOCKING=1 python3 main.py --num-gpus 1 --config-file configs/paco/defrcn_det_r101_base.yaml     \
-    --opts MODEL.WEIGHTS ${IMAGENET_PRETRAIN}                                         \
-           OUTPUT_DIR ${SAVEDIR}/defrcn_det_r101_base
+# CUDA_LAUNCH_BLOCKING=1 python3 main.py --num-gpus 1 --config-file configs/paco/defrcn_det_r101_base.yaml     \
+#     --opts MODEL.WEIGHTS ${IMAGENET_PRETRAIN}                                         \
+#            OUTPUT_DIR ${SAVEDIR}/defrcn_det_r101_base
 # CUDA_LAUNCH_BLOCKING=1 python3 main.py --num-gpus 1 --config-file configs/paco/defrcn_det_r101_base.yaml --eval-only     \
 #     --opts MODEL.WEIGHTS /pesos/model_final.pth                                         \
 #            OUTPUT_DIR ${SAVEDIR}/defrcn_det_r101_base
@@ -24,9 +24,9 @@ BASE_WEIGHT=${SAVEDIR}/defrcn_det_r101_base/model_reset_remove.pth
 
 # ------------------------------ Novel Fine-tuning -------------------------------- #
 # --> 1. FSRW-like, i.e. run seed0 10 times (FSOD)
-for repeat_id in 0 1 2 3 4 5 6 7 8 9
+for repeat_id in 0 # for repeat_id in 0 1 2 3 4 5 6 7 8 9
 do
-    for shot in 1 2 3 5 10 30
+    for shot in 30 # for shot in 1 2 3 5 10 30
     do
         for seed in 0
         do
@@ -38,7 +38,7 @@ do
                 --opts MODEL.WEIGHTS ${BASE_WEIGHT} OUTPUT_DIR ${OUTPUT_DIR}           \
                        TEST.PCB_MODELPATH ${IMAGENET_PRETRAIN_TORCH}
             rm ${CONFIG_PATH}
-            rm ${OUTPUT_DIR}/model_final.pth
+            # rm ${OUTPUT_DIR}/model_final.pth
         done
     done
 done
@@ -54,9 +54,9 @@ BASE_WEIGHT=${SAVEDIR}/defrcn_det_r101_base/model_reset_surgery.pth
 
 # ------------------------------ Novel Fine-tuning ------------------------------- #
 # --> 2. TFA-like, i.e. run seed0~9 for robust results (G-FSOD, 75 classes)
-for seed in 0 1 2 3 4 5 6 7 8 9
+for seed in 0 # for seed in 0 1 2 3 4 5 6 7 8 9
 do
-    for shot in 1 2 3 5 10 30
+    for shot in 30 # for shot in 1 2 3 5 10 30
     do
         python3 tools/create_config.py --dataset paco --config_root configs/paco     \
             --shot ${shot} --seed ${seed} --setting 'gfsod'
@@ -66,7 +66,7 @@ do
             --opts MODEL.WEIGHTS ${BASE_WEIGHT} OUTPUT_DIR ${OUTPUT_DIR}               \
                    TEST.PCB_MODELPATH ${IMAGENET_PRETRAIN_TORCH}
         rm ${CONFIG_PATH}
-        rm ${OUTPUT_DIR}/model_final.pth
+        # rm ${OUTPUT_DIR}/model_final.pth
     done
 done
 python3 tools/extract_results.py --res-dir ${SAVEDIR}/defrcn_gfsod_r101_novel/tfa-like --shot-list 1 2 3 5 10 30  # surmarize all results
