@@ -11,11 +11,19 @@ MODEL:
     BACKWARD_SCALE: 0.0
     FREEZE: False
   ROI_HEADS:
+    NAME: "PACOROIHeads"
     NUM_CLASSES: 75
     FREEZE_FEAT: True
     CLS_DROPOUT: True
     ENABLE_DECOUPLE: True
     BACKWARD_SCALE: 0.01
+  ROI_BOX_HEAD:
+    NAME: "FastRCNNConvFCHead"
+    NUM_CONV: 0
+    CONV_DIM: 256
+    NUM_FC: 2
+    FC_DIM: 1024
+    NORM: ""
 DATASETS:
   TRAIN: ('paco_train_all_3shot_seedx',)
   TEST: ('paco_test_all',)
