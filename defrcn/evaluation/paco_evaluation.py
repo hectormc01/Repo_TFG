@@ -227,7 +227,7 @@ class PACOEvaluator(LVISEvaluator):
             for task in sorted(tasks):
                 self._results[task] = {}
                 for split, classes, names in [
-                        ("all", None, self._metadata.get("thing_classes")),
+                        ("all", None, None),
                         ("base", self._base_classes, self._metadata.get("base_classes")),
                         ("novel", self._novel_classes, self._metadata.get("novel_classes"))]:
                     if "all" not in self._dataset_name and split not in self._dataset_name:
