@@ -85,7 +85,11 @@ if __name__ == '__main__':
                         help='remove = remove the final layer of the base detector. '
                              'randinit = randomly initialize novel weights.')
     parser.add_argument('--param-name', type=str, nargs='+', help='Target parameter names',
-                        default=['roi_heads.box_predictor.cls_score', 'roi_heads.box_predictor.bbox_pred'])
+                        default=['roi_heads.box_predictor.cls_score', 'roi_heads.box_predictor.bbox_pred',
+                        'roi_heads.attr_predictor.attr_pred1',
+                        'roi_heads.attr_predictor.attr_pred2',
+                        'roi_heads.attr_predictor.attr_pred3',
+                        'roi_heads.attr_predictor.attr_pred4'])
     parser.add_argument('--tar-name', type=str, default='model_reset', help='Name of the new ckpt')
     args = parser.parse_args()
 
