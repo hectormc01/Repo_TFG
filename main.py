@@ -24,7 +24,7 @@ class Trainer(DefaultTrainer):
                 tasks=("bbox",), # tasks=("segm", "bbox"),
                 distributed = True,
                 output_dir = output_folder,
-                eval_attributes = True,
+                eval_attributes = False,
                 attr_ap_type = "usual"
             ))
         if evaluator_type == "coco":

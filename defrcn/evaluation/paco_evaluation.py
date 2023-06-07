@@ -332,11 +332,11 @@ def _evaluate_predictions_on_lvis(
         from lvis import LVISEval, LVISResults
 
         lvis_results = LVISResults(lvis_gt, lvis_results, max_dets=max_dets_per_image)
-        lvis_eval = LVISEval(lvis_gt, lvis_results, iou_type, cat_ids=cat_ids)
-
-    # if cat_ids is not None:
-        # lvis_eval.params.use_cats = 1 # Por defecto
-        # lvis_eval.params.cat_ids = cat_ids
+        lvis_eval = LVISEval(lvis_gt, lvis_results, iou_type)
+    
+        if cat_ids is not None:
+            lvis_eval.params.use_cats = 1
+            lvis_eval.params.cat_ids = cat_ids
     
     lvis_eval.run()
     lvis_eval.print_results()
