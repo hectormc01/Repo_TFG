@@ -24,7 +24,7 @@ BASE_WEIGHT=${SAVEDIR}/defrcn_det_r101_base/model_reset_remove.pth
 
 # ------------------------------ Novel Fine-tuning -------------------------------- #
 # --> 1. FSRW-like, i.e. run seed0 10 times (FSOD)
-for repeat_id in 0 # for repeat_id in 0 1 2 3 4 5 6 7 8 9
+for repeat_id in 0 1 2 3 4 5 6 7 8 9
 do
     for shot in 1 2 3 5 10 30
     do
@@ -54,7 +54,7 @@ BASE_WEIGHT=${SAVEDIR}/defrcn_det_r101_base/model_reset_surgery.pth
 
 # ------------------------------ Novel Fine-tuning ------------------------------- #
 # --> 2. TFA-like, i.e. run seed0~9 for robust results (G-FSOD, 75 classes)
-for seed in 0 # for seed in 0 1 2 3 4 5 6 7 8 9
+for seed in 0 1 2 3 4 5 6 7 8 9
 do
     for shot in 1 2 3 5 10 30
     do

@@ -391,6 +391,7 @@ class PACOROIHeads(ROIHeads):
     def __init__(self, cfg, input_shape):
         super().__init__(cfg, input_shape)
 
+        self.cfg = cfg
         self._init_box_head(cfg)        # Defínense self.box_pooler, self.res5 e self.box_predictor
         self._init_attribute_head(cfg)  # Defínense self.attr_pooler, self.attr_head e self.attr_predictor
 
@@ -490,6 +491,12 @@ class PACOROIHeads(ROIHeads):
             loss_weight=0.01
         )
 
+        # Conxelamos os parámetros de self.attr_predictor durante o fine-tuning few-shot
+        if cfg.MODEL.ROI_HEADS.FREEZE_ATTR:
+            for p in self.attr_predictor.parameters():
+                p.requires_grad = False
+            print("Froze attr predictor (attr output layers) parameters")
+
     def forward(self, images, features, proposals, targets=None):
         """
         See :class:`ROIHeads.forward`.
@@ -503,7 +510,12 @@ class PACOROIHeads(ROIHeads):
 
         if self.training:
             losses = self._forward_box(features, proposals)
-            losses.update(self._forward_attributes(features, proposals))
+
+            # No fine-tuning few-shot non se contabiliza o erro da predición de atributos
+            # Xa que non se adestra esta parte da cabeceira
+            if not self.cfg.MODEL.ROI_HEADS.FREEZE_ATTR:
+                losses.update(self._forward_attributes(features, proposals))
+
             return proposals, losses
         else:
             pred_instances = self._forward_box(features, proposals)

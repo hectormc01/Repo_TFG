@@ -16,6 +16,7 @@ MODEL:
     CLS_DROPOUT: True
     ENABLE_DECOUPLE: True
     BACKWARD_SCALE: 0.01
+    FREEZE_ATTR: True
   ROI_BOX_HEAD:
     NAME: "FastRCNNConvFCHead"
     NUM_CONV: 0
