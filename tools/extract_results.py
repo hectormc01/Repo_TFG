@@ -35,7 +35,7 @@ def main():
 
         results_np = np.array(results)
         avg = np.mean(results_np, axis=0).tolist()
-        cid = [1.96 * s / math.sqrt(results_np.shape[0]) for s in np.std(results_np, axis=0)]
+        cid = [s for s in np.std(results_np, axis=0)]
         results.append(['μ'] + avg[1:])
         results.append(['c'] + cid[1:])
 
@@ -52,7 +52,7 @@ def main():
         wf.flush()
     wf.close()
 
-    print('Reformat all results -> {}'.format(os.path.join(args.res_dir, 'results.txt')))
+    print('Reformat detection results -> {}'.format(os.path.join(args.res_dir, 'results.txt')))
 
 
 if __name__ == '__main__':
