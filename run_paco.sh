@@ -45,6 +45,7 @@ done
 python3 tools/extract_results.py --res-dir ${SAVEDIR}/defrcn_fsod_r101_novel/fsrw-like --shot-list 1 2 3 5 10 30 
 python3 tools/extract_results_per_cat.py --res-dir ${SAVEDIR}/defrcn_fsod_r101_novel/fsrw-like --shot-list 1 2 3 5 10 30
 python3 tools/extract_attr_results.py --res-dir ${SAVEDIR}/defrcn_fsod_r101_novel/fsrw-like --shot-list 1 2 3 5 10 30
+python3 tools/extract_attr_results_per_cat.py --res-dir ${SAVEDIR}/defrcn_fsod_r101_novel/fsrw-like --shot-list 1 2 3 5 10 30
 
 
 # # ----------------------------- Model Preparation --------------------------------- #
@@ -74,6 +75,7 @@ python3 tools/extract_attr_results.py --res-dir ${SAVEDIR}/defrcn_fsod_r101_nove
 # python3 tools/extract_results.py --res-dir ${SAVEDIR}/defrcn_gfsod_r101_novel/tfa-like --shot-list 1 2 3 5 10 30
 # python3 tools/extract_results_per_cat.py --res-dir ${SAVEDIR}/defrcn_gfsod_r101_novel/tfa-like --shot-list 1 2 3 5 10 30
 # python3 tools/extract_attr_results.py --res-dir ${SAVEDIR}/defrcn_gfsod_r101_novel/tfa-like --shot-list 1 2 3 5 10 30
+# python3 tools/extract_attr_results_per_cat.py --res-dir ${SAVEDIR}/defrcn_gfsod_r101_novel/tfa-like --shot-list 1 2 3 5 10 30
 
 
 # # ------------------------------ Novel Fine-tuning ------------------------------- #  not necessary, just for the completeness of defrcn
