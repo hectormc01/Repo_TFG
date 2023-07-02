@@ -1,2 +1,2 @@
 # Repo_TFG
-TFG - DeFRCN + PACO
+Detección de obxectos e atributos cun conxunto de adestramento reducido

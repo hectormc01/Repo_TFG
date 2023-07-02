@@ -5,7 +5,7 @@ import random
 
 
 def generate_seeds():
-    data_path = "/data/datasets/paco/annotations/paco_lvis_v1_train.json"
+    data_path = "datasets/paco/annotations/paco_lvis_v1_train.json"
     data = json.load(open(data_path))
 
     id2img = {} # diccionario de diccionarios de imaxes indexado polo id da imaxe
